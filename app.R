@@ -83,9 +83,9 @@ ui <- fluidPage(
     h4("Probability over time:"),br(),br(),
     plotlyOutput(height=250,"wykres"))
   ),
-  hr(),
-  p("Model details:"),
-verbatimTextOutput("modelInfo"), 
+  #hr(),
+  #p("Model details:"),
+  #verbatimTextOutput("modelInfo"), 
 
   hr(),
   p(HTML("<a href=\"#\" target=\"_blank\">This software is a part of paper entitled ''.</a>"),
@@ -102,7 +102,7 @@ verbatimTextOutput("modelInfo"),
 server <- function(input, output) {
   
   
-  modelInfo = reactive({ modelcoxa2 })
+  #modelInfo = reactive({ modelcoxa2 })
   
   # Reactive expression to create data frame of all input values ----
   sliderValues <- reactive({
@@ -193,9 +193,9 @@ server <- function(input, output) {
     thresholdPlot()
   })
   
-  output$modelInfo <- renderPrint({
-    modelInfo()
-  })
+  #output$modelInfo <- renderPrint({
+  #  modelInfo()
+  #})
   
 
 }
