@@ -30,14 +30,14 @@ ui <- fluidPage(
          </script>")
   ),
   # App title ----
-  titlePanel("Predict the probability of relapse of reccurence (disease-free survival) after adjuvant or salvage radiation therapy for prostate cancer."),
+  titlePanel("Predict the probability of relapse or reccurence (disease-free survival) after adjuvant or salvage radiation therapy for prostate cancer."),
   
   # Sidebar layout with input and output definitions ----
     p("Opis..."),
     hr(),
     # Sidebar to demonstrate various slider options ----
     fluidRow(
-      column(6,offset = 0,
+      column(4,offset = 0,
       # Input: Simple integer interval ----
       h4("Initial treatment:"),
       selectInput("wysokiGGG", "Post-op Gleason grading group (GGG):",
@@ -50,9 +50,9 @@ ui <- fluidPage(
 
       selectInput("indication", "Primary indication for radiotherapy treatment:",
                         choices = list("Post-op pT3 feature" = 1, 
-                        "Local reccurence (mass)" = 2, "Other (biochemical, margin etc.)" = 3), selected = 1),
+                        "Local reccurence (mass)" = 2, "Other (biochemical, margin etc.)" = 3), selected = 1)),
 
-      
+      column(3,offset = 0,
       h4("Current status:"),
       # Input: Decimal interval with step value ----
       
@@ -62,28 +62,30 @@ ui <- fluidPage(
 
             selectInput("ADT", "Currently on ADT:",
                         choices = list("No" = 1, 
-                        "Yes" = 2), selected = 1),
+                        "Yes" = 2), selected = 1)),
       
+      #submitButton("Update filters")
       
-      
+      column(5,offset = 0,
+           h4("Prediction:"),
+           # Output: Table summarizing the values entered ----
+           tableOutput("values"),
+           em("The table above presents the probability of relapse or reccurence of prostate cancer for this particular patient as well as its 95% confidence interval."),
+           
     ),
-    
-    # Main panel for displaying outputs ----
-    column(6,offset = 0,
-      h4("Prediction:"),
-      # Output: Table summarizing the values entered ----
-      tableOutput("values")
       
-    )
+    
   ),
   fluidRow(
+    # Main panel for displaying outputs ----
+    
     column(12,
-    em("3. See how the score would change in time for this particular patient:"),br(),br(),
+    h4("Probability over time:"),br(),br(),
     plotlyOutput(height=250,"wykres"))
   ),
   hr(),
-  hr("Model details:"),
-verbatimTextOutput("model_info"), 
+  p("Model details:"),
+verbatimTextOutput("modelInfo"), 
 
   hr(),
   p(HTML("<a href=\"#\" target=\"_blank\">This software is a part of paper entitled ''.</a>"),
@@ -100,28 +102,32 @@ verbatimTextOutput("model_info"),
 server <- function(input, output) {
   
   
-  output$model_info = renderPrint({ modelcoxa })
+  modelInfo = reactive({ modelcoxa2 })
   
   # Reactive expression to create data frame of all input values ----
   sliderValues <- reactive({
     
-    wskazanie_T3 = ifelse(input$indication == 1, 2, 1)
-    wskazanie_wnowmiejsc = ifelse(input$indication == 2, 2, 1)
+    wskazanie_T3 = as.numeric(as.character(factor(ifelse(input$indication == 1, 2, 1), levels = c(1,2))))
+    wskazanie_wnowmiejsc = as.numeric(as.character(factor(ifelse(input$indication == 2, 2, 1), levels = c(1,2))))
+    wysokiGGG = as.numeric(as.character(factor(input$wysokiGGG, levels = c(1,2))))
+    wysokiePSA = as.numeric(as.character(factor(input$wysokiePSA, levels = c(1,2))))
+    ADT = as.numeric(as.character(factor(input$ADT, levels = c(1,2))))
+    ART = as.numeric(as.character(factor(input$ART, levels = c(1,2))))
 
-    y_pred_12 = 1- Predict(modelcoxa2, time = 12, wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$yhat
-    y_pred_24 = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$yhat
-    y_pred_36 = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$yhat
-    y_pred_48 = 1-Predict(modelcoxa2, time = 60, wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$yhat
+    y_pred_12 = 1- Predict(modelcoxa2, time = 12, wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$yhat
+    y_pred_24 = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$yhat
+    y_pred_36 = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$yhat
+    y_pred_48 = 1-Predict(modelcoxa2, time = 60, wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$yhat
     
-    y_pred_12l = 1-Predict(modelcoxa2, time = 12,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$lower
-    y_pred_24l = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$lower
-    y_pred_36l = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$lower
-    y_pred_48l = 1-Predict(modelcoxa2, time = 60,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$lower
+    y_pred_12l = 1-Predict(modelcoxa2, time = 12,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$lower
+    y_pred_24l = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$lower
+    y_pred_36l = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$lower
+    y_pred_48l = 1-Predict(modelcoxa2, time = 60,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$lower
     
-    y_pred_12u = 1-Predict(modelcoxa2, time = 12,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$upper
-    y_pred_24u = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$upper
-    y_pred_36u = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$upper
-    y_pred_48u = 1-Predict(modelcoxa2, time = 60,  wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$upper
+    y_pred_12u = 1-Predict(modelcoxa2, time = 12,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$upper
+    y_pred_24u = 1-Predict(modelcoxa2, time = 24,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$upper
+    y_pred_36u = 1-Predict(modelcoxa2, time = 36,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$upper
+    y_pred_48u = 1-Predict(modelcoxa2, time = 60,  wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$upper
     
     dec_12 = ifelse(y_pred_12>(1-0.5),"+","-")
     dec_24 = ifelse(y_pred_24>(1-0.5),"+","-")
@@ -150,9 +156,14 @@ server <- function(input, output) {
   thresholdPlot <- reactive({
     trace_0 = vector()
     for (i in 12:60) {
-      wskazanie_T3 = ifelse(input$indication == 1, 2, 1)
-      wskazanie_wnowmiejsc = ifelse(input$indication == 2, 2, 1)
-      trace_0 =  c(trace_0, 1-as.numeric(Predict(modelcoxa2, time = i, wysokiGGG = input$wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = input$wysokiePSA, ADT = input$ADT, ART = input$ART)$yhat))
+      wskazanie_T3 = as.numeric(as.character(factor(ifelse(input$indication == 1, 2, 1), levels = c(1,2))))
+      wskazanie_wnowmiejsc = as.numeric(as.character(factor(ifelse(input$indication == 2, 2, 1), levels = c(1,2))))
+      wysokiGGG = as.numeric(as.character(factor(input$wysokiGGG, levels = c(1,2))))
+      wysokiePSA = as.numeric(as.character(factor(input$wysokiePSA, levels = c(1,2))))
+      ADT = as.numeric(as.character(factor(input$ADT, levels = c(1,2))))
+      ART = as.numeric(as.character(factor(input$ART, levels = c(1,2))))
+      
+      trace_0 =  c(trace_0, 1-as.numeric(Predict(modelcoxa2, time = i, wysokiGGG = wysokiGGG, wskazanie_T3 = wskazanie_T3, wskazanie_wnowmiejsc = wskazanie_wnowmiejsc, wysokiePSA = wysokiePSA, ADT = ADT, ART = ART)$yhat))
     }
     
     trace_1 <- 1-0.5
@@ -173,6 +184,7 @@ server <- function(input, output) {
   })
   
   # Show the values in an HTML table ----
+
   output$values <- renderTable({
     sliderValues()
   })
@@ -181,6 +193,11 @@ server <- function(input, output) {
     thresholdPlot()
   })
   
+  output$modelInfo <- renderPrint({
+    modelInfo()
+  })
+  
+
 }
 
 # Create Shiny app ----
